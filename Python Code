@@ -1,0 +1,122 @@
+import time
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedShuffleSplit
+
+housing = pd.read_csv('housing.csv')
+
+print('The number of observations n = {},while the number of predictor variables p = {}'\
+      .format(housing.shape[0],\
+              housing.shape[1]-1))
+              
+              
+#housing.describe().T
+print(housing.loc[:,'median_income'].describe())
+housing.loc[:,'median_income'].hist(bins=50, figsize=(16,8))
+housing.hist(bins=50, figsize=(16,8));
+plt.show()
+#Observations:
+#median income is not expressed in USD (x variable are 0,2,4, etc)
+#housing median age and median house value are capped (as seen by the sudden spike at 50 and 500,000 respectively) 
+#aka we don't know information beyond those two points, how much we have of those values beyond those two points
+#this means that the data is censored, or capped (we don't have info beyond the points)
+
+housing.loc[:,'income_category'] = \
+pd.cut(housing.loc[:,'median_income'],
+      bins=[0, 1.5, 3.0, 4.5, 6.0, np.inf],
+      labels=range(1,6))
+      
+      
+split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+
+for train_index, test_index in split.split(housing, housing.loc[:,'income_category']):
+    print(train_index, test_index)
+    strat_train_set = housing.loc[train_index, :]
+    strat_test_set = housing.loc[test_index, :]
+    
+strat_train_set
+strat_test_set
+
+strat_train_set = strat_train_set.drop('income_category', axis=1)
+strat_test_set = strat_test_set.drop('income_category', axis=1)
+
+X_Y_train = strat_train_set.copy()
+corr_matrix = X_Y_train.corr()
+corr_matrix
+corr_matrix.loc[:,'median_house_value'].sort_values(ascending=False)
+#median_income, total rooms, and housing median age have the highest positive correlations
+
+from pandas.plotting import scatter_matrix
+scatter_matrix(X_Y_train, figsize=(16,8))
+interesting_variables = ['median_house_value', 'median_income', 'total_rooms', 'housing_median_age']
+scatter_matrix(X_Y_train.loc[:, interesting_variables], figsize=(16,8));
+
+X_Y_train['rooms_per_household'] = X_Y_train['total_rooms'] / X_Y_train['households']
+
+X_Y_train['bedrooms_per_room'] = X_Y_train['total_bedrooms'] / X_Y_train['total_rooms']
+
+X_Y_train['population_per_household'] = X_Y_train['population'] / X_Y_train['households']
+
+X_Y_train.corr()['median_house_value'].sort_values(ascending=False)
+
+
+X_train = train_set.drop('median_house_value', axis=1)  # drop already creates a copy
+
+Y_train = train_set.loc[:,'median_house_value'].copy()
+
+X_test = strat_test_set.drop('median_house_value', axis=1)  # drop already creates a copy
+Y_test = strat_test_set.loc[:,'median_house_value'].copy()
+
+X_train_numerical = X_train.iloc[:,:-1]
+X_train_categorical = X_train.iloc[:, -1]
+
+median_train_set = X_train.loc[:,'total_bedrooms'].median()
+X_train_numerical.loc[:,'total_bedrooms'].fillna(median_train_set, inplace=True) 
+
+from sklearn.preprocessing import OrdinalEncoder
+
+ordinal_encoder = OrdinalEncoder()
+
+ocean_proximity_encoded = ordinal_encoder.fit_transform(X_train.loc[:,'ocean_proximity'].values.reshape(-1,1))
+#reshape it to one column 
+
+ocean_proximity_encoded[:10]
+
+pd.DataFrame(ocean_proximity_dummy.toarray(), columns=dummy_encoder.categories_[0])
+
+
+pd.concat([pd.DataFrame(X_train.loc[:,'ocean_proximity']).reset_index(drop=True), 
+          pd.DataFrame(ocean_proximity_dummy.toarray(), columns=dummy_encoder.categories_[0])],
+         axis=1)
+
+
+median_train_set = X_train.loc[:,'total_bedrooms'].median()
+X_train_numerical.loc[:,'total_bedrooms'].fillna(median_train_set, inplace=True) 
+
+X_train_numerical_scaled = (X_train_numerical - X_train_numerical.mean()) / X_train_numerical.std()
+X_train_cleaned = pd.concat([X_train_numerical_scaled.reset_index(drop=True), 
+                     pd.DataFrame(ocean_proximity_dummy.toarray(), columns=dummy_encoder.categories_[0])],
+                    axis=1)
+X_train_cleaned
+train_set.drop('median_house_value', axis=1).iloc[:,:-1].mean()
+
+
+from sklearn.tree import DecisionTreeRegressor
+
+tree_reg = DecisionTreeRegressor()
+
+tree_reg.fit(X_train_cleaned, Y_train)
+
+print("Predictions: {}".format(tree_reg.predict(some_in_sample_data)))
+
+print("Targets: {}".format(list(some_in_sample_target_data)))
+
+from sklearn.metrics import mean_squared_error
+
+Y_hat_train = tree_reg.predict(X_train_cleaned)
+np.sqrt(mean_squared_error(Y_train, Y_hat_train))
+
+
