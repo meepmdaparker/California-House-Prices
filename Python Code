@@ -6,13 +6,25 @@ plt.style.use('ggplot')
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedShuffleSplit
 
+
+#import csv file
 housing = pd.read_csv('housing.csv')
 
+#explore dataset
+housing.head()
+housing.info()
 print('The number of observations n = {},while the number of predictor variables p = {}'\
       .format(housing.shape[0],\
-              housing.shape[1]-1))
-              
-              
+              housing.shape[1]-1))              
+housing.isna().sum()  
+# is the null bedrooms because it was a studio or is there missing data?
+#.dropna
+#.fillna
+
+housing.dtypes
+
+# It would be a good idea to do more EDA grouping by longitude and latitude, i.e. per district.
+housing.groupby(['longitude', 'latitude'])[['total_rooms', 'total_bedrooms', 'population']].mean()
 #housing.describe().T
 print(housing.loc[:,'median_income'].describe())
 housing.loc[:,'median_income'].hist(bins=50, figsize=(16,8))
@@ -24,11 +36,13 @@ plt.show()
 #aka we don't know information beyond those two points, how much we have of those values beyond those two points
 #this means that the data is censored, or capped (we don't have info beyond the points)
 
+
+#splitting data into training and testing data via stratified random sampling
+#creating a new column called income category based off median income
 housing.loc[:,'income_category'] = \
 pd.cut(housing.loc[:,'median_income'],
       bins=[0, 1.5, 3.0, 4.5, 6.0, np.inf],
       labels=range(1,6))
-      
       
 split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
 
@@ -43,7 +57,25 @@ strat_test_set
 strat_train_set = strat_train_set.drop('income_category', axis=1)
 strat_test_set = strat_test_set.drop('income_category', axis=1)
 
+
 X_Y_train = strat_train_set.copy()
+
+X_Y_train.plot(kind="scatter", x="longitude", y="latitude", figsize=(16,8))
+#by plotting out longitutde and latitutde, we can see where we're looking at
+#in this case the points indicate a shape similar to California 
+#by seeing this, we can try clustering based on regions in California
+
+
+X_Y_train.plot(kind='scatter', x='longitude', y='latitude', 
+               alpha=0.4,
+               s=X_Y_train.loc[:,'population']/100,
+               label='population', 
+               figsize=(16,8),
+               c='median_house_value', 
+               cmap=plt.get_cmap('jet'), 
+               colorbar=True) #colorbar=False
+
+#measuring correlations
 corr_matrix = X_Y_train.corr()
 corr_matrix
 corr_matrix.loc[:,'median_house_value'].sort_values(ascending=False)
@@ -54,6 +86,8 @@ scatter_matrix(X_Y_train, figsize=(16,8))
 interesting_variables = ['median_house_value', 'median_income', 'total_rooms', 'housing_median_age']
 scatter_matrix(X_Y_train.loc[:, interesting_variables], figsize=(16,8));
 
+
+#feature engineering
 X_Y_train['rooms_per_household'] = X_Y_train['total_rooms'] / X_Y_train['households']
 
 X_Y_train['bedrooms_per_room'] = X_Y_train['total_bedrooms'] / X_Y_train['total_rooms']
@@ -63,6 +97,7 @@ X_Y_train['population_per_household'] = X_Y_train['population'] / X_Y_train['hou
 X_Y_train.corr()['median_house_value'].sort_values(ascending=False)
 
 
+#prepare data for predictive models
 X_train = train_set.drop('median_house_value', axis=1)  # drop already creates a copy
 
 Y_train = train_set.loc[:,'median_house_value'].copy()
